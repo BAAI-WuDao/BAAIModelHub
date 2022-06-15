@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: baai-modelhub
+Version: 0.0.1
+Summary: BAAIModelHub is a tool for managing models from model.baai.ac.cn
+Home-page: https://github.com/BAAI-WuDao/BAAIModelHub
+Author: zhiyuan
+Author-email: zhiyuan@baai.ac.cn
+License: MIT
+Keywords: modelhub
+Platform: UNKNOWN
+Requires-Python: >=3.6.0
+
+UNKNOWN
+

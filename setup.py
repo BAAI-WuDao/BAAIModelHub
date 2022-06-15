@@ -1,7 +1,5 @@
-
+import setuptools
 from setuptools import find_packages, setup
-
-
 setup(
     name="baai_modelhub",
     version="0.0.1",

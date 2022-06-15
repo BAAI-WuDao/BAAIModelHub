@@ -23,7 +23,7 @@ One can download models from [model.baai.ac.cn](https://model.baai.ac.cn/) with 
 ```python
 from baai_modelhub import AutoPull
 auto_pull = AutoPull()
-auto_pull.pullmodel(model_name='cogview2-ch',
+auto_pull.get_model(model_name='cogview2-ch',
                     model_save_path='./checkpoints/'
                     )
 ```
@@ -33,7 +33,7 @@ Also, if you only need  one file in the model, you can specify the file name, as
 ```python
 from baai_modelhub import AutoPull
 auto_pull = AutoPull()
-auto_pull.pullmodel(model_name='GLM-large-ch',
+auto_pull.get_model(model_name='GLM-large-ch',
                     model_save_path='./checkpoints/',
                     file_name='vocab.txt'
                     )

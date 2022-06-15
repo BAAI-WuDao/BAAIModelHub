@@ -1,0 +1,8 @@
+README.md
+setup.py
+baai_modelhub/__init__.py
+baai_modelhub/client.py
+baai_modelhub.egg-info/PKG-INFO
+baai_modelhub.egg-info/SOURCES.txt
+baai_modelhub.egg-info/dependency_links.txt
+baai_modelhub.egg-info/top_level.txt

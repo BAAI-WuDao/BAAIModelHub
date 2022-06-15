@@ -118,9 +118,9 @@ def _get_model_id(model_name):
 
 class AutoPull(object):
     def __init__(self):
-        self.request = 'https://model.baai.ac.cn/api/searchModelFileByName?model_name='
+        self.request = 'http://120.131.5.115:8080/api/searchModelFileByName?model_name='
 
-    def get_model(self, model_name, model_save_path='./checkpoints/', file_name=None):
+    def pullmodel(self, model_name, model_save_path='./checkpoints/', file_name=None):
         to_path = os.path.join(model_save_path, model_name)
         print(to_path)
         model_id = _get_model_id(model_name)
@@ -140,6 +140,6 @@ class AutoPull(object):
 
 if __name__=='__main__':
     auto_pull = AutoPull()
-    auto_pull.get_model(model_name='cogview2-ch',
+    auto_pull.pullmodel(model_name='cogview2-ch',
                        model_save_path='./checkpoints/'
                        )
