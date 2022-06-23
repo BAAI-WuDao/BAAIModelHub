@@ -24,7 +24,7 @@ from packaging import version
 from tqdm.auto import tqdm
 import requests
 import logging
-
+import json
 logger = logging.getLogger(__name__.split(".")[0])
 
 
@@ -139,7 +139,18 @@ class AutoPull(object):
         print('model downloaded in ', os.getcwd() + to_path[1:])
 
 if __name__=='__main__':
-    auto_pull = AutoPull()
-    auto_pull.get_model(model_name='cogview2-ch',
-                       model_save_path='./checkpoints/'
-                       )
+    # auto_pull = AutoPull()
+    # auto_pull.get_model(model_name='cogview2-ch',
+    #                    model_save_path='./checkpoints/'
+    #                    )
+
+    request1 = 'http://120.131.5.115:8080/api/downloadCodeTest'
+    input_key={
+    "encrypted_text": 'slLBRz31xx/25tk2C2jMiucIR7OQ3HDiV2cwuO3SX4hSIZo8FmUOUfhLSmUrGlFqwvcqyd7NjUJGpEqZvrOeuRDahp0kV0dbmn40kMLr1yhR0FnkhjPtabaRBsMNuuxxa65A60V+7hYg8iqdSouqX8u39IV4RrCmp8pvMK/kIr9ADt0sKNBX/BF+w74xgJCgjeU9WFATxs90DWrC9f+lw68E/CAFqTT9NO0gKYTapSexSOJyk+CyRN1VIFPexL4YU/DsGNLW8Wj/yJ+kQEcptDXVYNn71XJcSsppVBNeCZ0Xcm5LQLFjbPmwWKnezOEvDjP8TzyiHQe9/nQ4XxTd6A==',
+    "user_name": '羽1592893612',
+    "model_id": 100001,
+    "file_name": 'vocab.txt'}
+    data=json.dumps(input_key)
+    print(data)
+    response=requests.post(request1,data=data)
+    print(json.loads(response.text))

@@ -107,6 +107,16 @@ class BAAIUserClient():
             x.write(self.user_name)
             x.write('\n')
 
+    def passward_login(self,):
+        print('Please type your username of baai.ac.cn:')
+        user_name = input()
+        print('Please type the passward:')
+        passward =input()
+        print('Please type the verification code of FreeOTP:')
+        passward = input()
+        token=''
+        return token
+
 
 
 if __name__ == '__main__':
@@ -170,3 +180,4 @@ if __name__ == '__main__':
     # 解密
     text_decrypted = decryption(text_encrypted_base64, public_key)
     print('明文：', text_decrypted)
+    user_client.passward_login()
