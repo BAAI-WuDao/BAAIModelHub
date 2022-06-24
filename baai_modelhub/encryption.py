@@ -1,7 +1,7 @@
 import base64
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto import Random
-import RSA
+from . import RSA
 import os
 
 
@@ -80,11 +80,11 @@ class BAAIUserClient():
     def obtain_username(self,):
         if not os.path.exists(self.cache_path):
             os.makedirs(self.cache_path)
-        try:
+        if 1:
             with open(self.user_path, "r") as x:
                 return x.read().strip('\n')
             return self.user_name
-        except:
+        else:
             print('Please type your username of baai.ac.cn:')
             user_name=input()
 
@@ -121,58 +121,9 @@ class BAAIUserClient():
 
 if __name__ == '__main__':
     user_client=BAAIUserClient(user_name='wangguojim1')
-    user_client.clear_cache()
-    # user_client.login()
-
-    def has_public(self):
-        """Whether this is an RSA public key"""
-        return hasattr(self, "_e") and not self.has_private()
-
-    def _encrypt(self, plaintext):
-        if not 0 <= plaintext < self._n:
-            raise ValueError("Plaintext too large")
-        if self.has_public():
-            return int(pow(Integer(plaintext), self._e, self._n))
-        elif self.has_private():
-            return int(pow(Integer(plaintext), self._d, self._n))
-        else:
-            raise TypeError("This is not a key")
-
-
-    def _decrypt(self, ciphertext):
-        if not 0 <= ciphertext < self._n:
-            raise ValueError("Ciphertext too large")
-        if self.has_private():
-            # raise TypeError("This is not a private key")
-
-            # Blinded RSA decryption (to prevent timing attacks):
-            # Step 1: Generate random secret blinding factor r,
-            # such that 0 < r < n-1
-            r = Integer.random_range(min_inclusive=1, max_exclusive=self._n)
-            # Step 2: Compute c' = c * r**e mod n
-            cp = Integer(ciphertext) * pow(r, self._e, self._n) % self._n
-            # Step 3: Compute m' = c'**d mod n       (normal RSA decryption)
-            m1 = pow(cp, self._dp, self._p)
-            m2 = pow(cp, self._dq, self._q)
-            h = ((m2 - m1) * self._u) % self._q
-            mp = h * self._p + m1
-            # Step 4: Compute m = m**(r-1) mod n
-            result = (r.inverse(self._n) * mp) % self._n
-            # Verify no faults occurred
-            if ciphertext != pow(result, self._e, self._n):
-                raise ValueError("Fault detected in RSA decryption")
-            return result
-        elif self.has_public():
-            return pow(Integer(ciphertext), self._e, self._n)
-        else:
-            raise TypeError("This is not a key")
-
-    # 生成密钥对
-    # create_rsa_pair(is_save=True)
+    # user_client.clear_cache()
     public_key = read_public_key()
     private_key = read_private_key()
-    # public_key, private_key = create_rsa_pair(is_save=False)
-    print(public_key, private_key)
     # 加密
     text =user_client.obtain_username()
     text_encrypted_base64 = encryption(text, private_key)
@@ -180,4 +131,4 @@ if __name__ == '__main__':
     # 解密
     text_decrypted = decryption(text_encrypted_base64, public_key)
     print('明文：', text_decrypted)
-    user_client.passward_login()
+

@@ -24,7 +24,9 @@ One can download models from [model.baai.ac.cn](https://model.baai.ac.cn/) with 
 from baai_modelhub import AutoPull
 auto_pull = AutoPull()
 auto_pull.get_model(model_name='cogview2-ch',
-                    model_save_path='./checkpoints/'
+                    model_save_path='./checkpoints/',
+                    user_name='***'
+                    
                     )
 ```
 
@@ -35,6 +37,7 @@ from baai_modelhub import AutoPull
 auto_pull = AutoPull()
 auto_pull.get_model(model_name='GLM-large-ch',
                     model_save_path='./checkpoints/',
-                    file_name='vocab.txt'
+                    file_name='vocab.txt',
+                    user_name='****'
                     )
 ```

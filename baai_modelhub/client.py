@@ -25,6 +25,9 @@ from tqdm.auto import tqdm
 import requests
 import logging
 import json
+from .encryption import read_private_key, read_public_key
+from .encryption import BAAIUserClient
+from .encryption import encryption, decryption
 logger = logging.getLogger(__name__.split(".")[0])
 
 
@@ -88,28 +91,6 @@ def download_from_url(url, total_size=0, to_path=None, file_pname=None, chunk_si
             res = requests.get(url, stream=True, verify=True, headers=headers)
 
 
-def _get_file_path(download_path, file_name, model_id):
-    config_path = os.path.join(str(model_id), file_name)
-
-    dic_download = {'path': config_path}
-    config_requests = requests.post('https://model.baai.ac.cn/api/download',
-                                    json=dic_download)
-    config_requests.encoding = "utf-8"
-    if json.loads(config_requests.text)['code'] == '40002':
-        file_list = json.loads(config_requests.text)['files']
-        print('file {} not exist in {}'.format(file_name, file_list))
-        return '40002'
-    url = json.loads(config_requests.text)['url']
-    size = json.loads(config_requests.text)['size']
-    download_from_url(url,
-                      total_size=size,
-                      to_path=download_path,
-                      file_pname=file_name
-                      )
-
-    return os.path.join(download_path, file_name)
-
-
 def _get_model_id(model_name):
     return requests.get('https://model.baai.ac.cn/api/searchModleByName', {
         'model_name': model_name
@@ -118,39 +99,77 @@ def _get_model_id(model_name):
 
 class AutoPull(object):
     def __init__(self):
-        self.request = 'https://model.baai.ac.cn/api/searchModelFileByName?model_name='
+        self.files_request = 'http://120.131.5.115:8080/api/downloadCodeTest'
 
-    def get_model(self, model_name, model_save_path='./checkpoints/', file_name=None):
-        to_path = os.path.join(model_save_path, model_name)
-        print(to_path)
+
+
+    def get_model(self, model_name,
+                   model_save_path='./checkpoints/',
+                   file_name='',
+                   user_name='default_name',
+                   login=False,):
+        download_path = os.path.join(model_save_path, model_name)
         model_id = _get_model_id(model_name)
-        file_requests = requests.get(self.request + model_name)
-        file_lists = file_requests.text.replace('"', '').strip('[,]').split(',')
-        if file_name is None:
-            for file in file_lists:
-                print(file, 'loading')
-                _get_file_path(to_path, file, model_id)
-        else:
-            if file_name not in file_lists:
-                raise ValueError('Model has no this file')
-            else:
-                _get_file_path(to_path, file_name, model_id)
+        user_client = BAAIUserClient(user_name=user_name)
+        public_key = read_public_key()
+        private_key = read_private_key()
+        # public_key, private_key = create_rsa_pair(is_save=False)
 
-        print('model downloaded in ', os.getcwd() + to_path[1:])
+        # 加密
+        user_name = user_client.obtain_username()
+        print(user_name)
+
+        text_encrypted_base64 = encryption(user_name, private_key)
+        print('密文：', text_encrypted_base64)
+        # 解密
+        # text_decrypted = decryption(text_encrypted_base64, public_key)
+        # print('明文：', text_decrypted)
+        # user_client.passward_login()
+
+
+        input_key={
+            "encrypted_text": text_encrypted_base64,
+            "user_name": user_name,
+            "model_id": model_id,
+            "file_name": ''
+        }
+        data=json.dumps(input_key)
+        response=requests.post(self.files_request,data=data)
+        texts=json.loads(response.text)
+        if texts['code']=='40005':
+            raise ValueError('To download this model, users need login permission. '
+                             'The RSA public key on baai.ac.cn does not mathc the user name,'
+                             ' please check the user name and the RSA public key')
+        elif texts['code']=='40001':
+            raise ValueError('To download this model, users need login permission. '
+                             'The user name is not found on baai.ac.cn, please check your user name'
+                             'or go to baai.ac.cn to register')
+        elif texts['code']=='200':
+            pass
+        else:
+            raise ValueError('Unknown errors')
+
+
+        file_list = texts['file_list']
+        if len(file_name)==0:
+            for file in file_list:
+                url = json.loads(file)['url']
+                size = json.loads(file)['size']
+                file_name = json.loads(file)['file_name']
+                download_from_url(url,
+                                  total_size=size,
+                                  to_path=download_path,
+                                  file_pname=file_name
+                                  )
+
 
 if __name__=='__main__':
-    # auto_pull = AutoPull()
-    # auto_pull.get_model(model_name='cogview2-ch',
-    #                    model_save_path='./checkpoints/'
-    #                    )
 
-    request1 = 'http://120.131.5.115:8080/api/downloadCodeTest'
-    input_key={
-    "encrypted_text": 'slLBRz31xx/25tk2C2jMiucIR7OQ3HDiV2cwuO3SX4hSIZo8FmUOUfhLSmUrGlFqwvcqyd7NjUJGpEqZvrOeuRDahp0kV0dbmn40kMLr1yhR0FnkhjPtabaRBsMNuuxxa65A60V+7hYg8iqdSouqX8u39IV4RrCmp8pvMK/kIr9ADt0sKNBX/BF+w74xgJCgjeU9WFATxs90DWrC9f+lw68E/CAFqTT9NO0gKYTapSexSOJyk+CyRN1VIFPexL4YU/DsGNLW8Wj/yJ+kQEcptDXVYNn71XJcSsppVBNeCZ0Xcm5LQLFjbPmwWKnezOEvDjP8TzyiHQe9/nQ4XxTd6A==',
-    "user_name": '羽1592893612',
-    "model_id": 100001,
-    "file_name": 'vocab.txt'}
-    data=json.dumps(input_key)
-    print(data)
-    response=requests.post(request1,data=data)
-    print(json.loads(response.text))
+
+    auto_pull = AutoPull()
+    auto_pull.get_model(model_name='GLM-10B-ch',
+                         model_save_path='./checkpoints/',
+                         user_name='羽1592893612',
+                       )
+
+
