@@ -1,4 +1,3 @@
-# 
 import copy
 import fnmatch
 import functools
@@ -25,9 +24,9 @@ from tqdm.auto import tqdm
 import requests
 import logging
 import json
-from .encryption import read_private_key, read_public_key
+from .encryption import read_private_key, read_public_key,create_rsa_pair
 from .encryption import BAAIUserClient
-from .encryption import encryption, decryption
+from .encryption import public_encryption, private_decryption, private_encryption, public_decryption
 logger = logging.getLogger(__name__.split(".")[0])
 
 
@@ -38,15 +37,12 @@ def download_from_url(url, total_size=0, to_path=None, file_pname=None, chunk_si
     chunk_size: chunk size
     resume_download: download from last chunk
     """
-    # response = requests.get(url, stream=True, verify=True)
     try:
         response = requests.get(url, stream=True, verify=True)
     except Exception:
         raise ValueError('please check the download file names')
-
     if to_path is None:
         to_path = './checkpoints/'
-
     if total_size < 1:
         try:
             total_size = int(response.headers['Content-Length'])
@@ -97,79 +93,103 @@ def _get_model_id(model_name):
     }).text
 
 
+def obtain_file_lists(model_id,
+                   file_name='',
+                   user_name='default_name',
+                   files_request=None):
+    if 1:
+        private_key = read_private_key()
+        public_key = read_public_key()
+        text_encrypted_base64 = private_encryption(user_name, private_key)
+        text_decrypted = public_decryption(text_encrypted_base64, public_key)
+        print('aa',text_decrypted)
+    else:
+        public_key,private_key=create_rsa_pair(is_save=False)
+        text_encrypted_base64 = private_encryption(user_name, private_key)
+        print('bb',text_encrypted_base64)
+
+    input_key={
+        "encrypted_text": text_encrypted_base64,
+        "user_name": user_name,
+        "model_id": model_id,
+        "file_name": file_name
+    }
+    data=json.dumps(input_key)
+    response=requests.post(files_request,data=data)
+
+    texts=json.loads(response.text)
+    return texts
+
 class AutoPull(object):
     def __init__(self):
         self.files_request = 'http://120.131.5.115:8080/api/downloadCodeTest'
 
-
-
     def get_model(self, model_name,
                    model_save_path='./checkpoints/',
                    file_name='',
-                   user_name='default_name',
-                   login=False,):
+                   user_name='default_name'):
         download_path = os.path.join(model_save_path, model_name)
         model_id = _get_model_id(model_name)
-        user_client = BAAIUserClient(user_name=user_name)
-        public_key = read_public_key()
-        private_key = read_private_key()
-        # public_key, private_key = create_rsa_pair(is_save=False)
+        user_client = BAAIUserClient()
+        user_name = user_client.obtain_and_set_username(user_name=user_name)
 
-        # 加密
-        user_name = user_client.obtain_username()
-        print(user_name)
-
-        text_encrypted_base64 = encryption(user_name, private_key)
-        print('密文：', text_encrypted_base64)
-        # 解密
-        # text_decrypted = decryption(text_encrypted_base64, public_key)
-        # print('明文：', text_decrypted)
-        # user_client.passward_login()
+        texts=obtain_file_lists(model_id,
+                          file_name=file_name,
+                          user_name=user_name,
+                          files_request=self.files_request)
+        print(texts)
 
 
-        input_key={
-            "encrypted_text": text_encrypted_base64,
-            "user_name": user_name,
-            "model_id": model_id,
-            "file_name": ''
-        }
-        data=json.dumps(input_key)
-        response=requests.post(self.files_request,data=data)
-        texts=json.loads(response.text)
+
         if texts['code']=='40005':
-            raise ValueError('To download this model, users need login permission. '
-                             'The RSA public key on baai.ac.cn does not mathc the user name,'
-                             ' please check the user name and the RSA public key')
+            try:
+                print('The RSA public key on mdoel.baai.ac.cn does not match the user name, one can login with user name and password')
+
+                try:
+                    user_client.passwd_login()
+                except:
+                    raise ValueError(
+                        'The RSA public key and the password is not valid, please flash the RSA public key, the username and the password'
+                        ' on model.aai.ac.cn')
+            except:
+                raise ValueError('To download this model, users need login permission. '
+                                 'The RSA public key on model.baai.ac.cn does not match the user name,'
+                                 ' please check the user name and the RSA public key')
+
         elif texts['code']=='40001':
-            raise ValueError('To download this model, users need login permission. '
-                             'The user name is not found on baai.ac.cn, please check your user name'
+            try:
+                print( 'The user name is invalid on model.baai.ac.cn, please retype your user name')
+                user_name=input()
+                user_client.save_user_name(user_name)
+                texts = obtain_file_lists(model_id,
+                                          file_name=file_name,
+                                          user_name=user_name,
+                                          files_request=self.files_request)
+            except:
+                raise ValueError('To download this model, users need login permission. '
+                             'The user name is not found on mdoel.baai.ac.cn, please check your user name '
                              'or go to baai.ac.cn to register')
         elif texts['code']=='200':
             pass
         else:
-            raise ValueError('Unknown errors')
+            try:
+                print('The RSA public key is invalid, please type your user name and password.')
+                user_client.passwd_login()
+            except:
+                raise ValueError('The RSA public key and the password is not valid, please flash the RSA public key, the username and the password'
+                                 ' on model.aai.ac.cn')
+
+        for file in texts['file_list']:
+            url = json.loads(file)['url']
+            size = json.loads(file)['size']
+            file_name = json.loads(file)['file_name']
+            download_from_url(url,
+                              total_size=size,
+                              to_path=download_path,
+                              file_pname=file_name
+                              )
 
 
-        file_list = texts['file_list']
-        if len(file_name)==0:
-            for file in file_list:
-                url = json.loads(file)['url']
-                size = json.loads(file)['size']
-                file_name = json.loads(file)['file_name']
-                download_from_url(url,
-                                  total_size=size,
-                                  to_path=download_path,
-                                  file_pname=file_name
-                                  )
 
-
-if __name__=='__main__':
-
-
-    auto_pull = AutoPull()
-    auto_pull.get_model(model_name='GLM-10B-ch',
-                         model_save_path='./checkpoints/',
-                         user_name='羽1592893612',
-                       )
 
 
