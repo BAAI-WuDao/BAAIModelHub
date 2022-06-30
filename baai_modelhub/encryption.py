@@ -4,7 +4,10 @@ from Crypto.Cipher import PKCS1_v1_5
 from Crypto import Random
 from . import RSA
 from Crypto.PublicKey import RSA as OldRSA
+import requests
+import json
 
+import maskpass
 
 
 
@@ -88,7 +91,21 @@ def public_decryption(text_encrypted_base64: str, public_key: bytes):
     return text_decrypted
 
 
-
+def passwd_request(user_name,passwd,googel_vericode):
+    public_key=b'-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAPtnfRsERmEVoCThY3YD67QYQ+K8hZAQ3wxEnraPSzUKH7n42oBtIGoorx2NsdN6oA9KirGPJjdjvB7Kuszmb90CAwEAAQ==\n-----END PUBLIC KEY-----\n'
+    url="https://usercenter.platform.baai.ac.cn/api/v1/user/login"
+    encode_passwd=public_encryption(passwd,public_key)
+    input_key = {
+        "ua":"mode",
+        "logintypes":2,
+        "username": user_name,
+        "password": encode_passwd,
+        "vericode":googel_vericode,
+        "platformtype": 2
+    }
+    data = json.dumps(input_key)
+    response = requests.post(url, data=data,headers = {'Content-Type': 'application/json' })
+    return response
 
 class BAAIUserClient():
     def __init__(self, user_name='default_name'):
@@ -123,18 +140,26 @@ class BAAIUserClient():
 
 
     def passwd_login(self,):
-        print('Please type your user name of model.baai.ac.cn (type Enter for default):')
-        user_name = input().strip('\n')
-        print('Please type your passward (type Enter for default):')
-        passward =input()
-        print('Please type the verification code of FreeOTP (type Enter for default):')
-        opt_vericode = input()
-        if true:
-            with open(user_path, "w") as x:
-                x.write(user_name)
-                x.write('\n')
+        print('Please type your user name of model.baai.ac.cn:')
+        user_name = input()
+        password = maskpass.askpass('passward:')
+        google_vericode =maskpass.askpass('Verification code from google authenticator:')
 
-        return is_login
+        response = passwd_request(user_name, password, google_vericode)
+        response_dict=json.loads(response.text)
+        print(user_name,password,google_vericode,)
+        print(response_dict)
+
+        print(os.path.join(self.cache_path,'token_info'),862876363@qq.com,response_dict['msg']=='登陆成功')
+        if response_dict['msg']=='登陆成功':
+            print(response_dict['jdauthorization'])
+
+            with open(os.path.join(self.cache_path,'token_info'),'w') as w:
+                print(response_dict['jdauthorization'])
+                w.write(response_dict['jdauthorization'])
+                w.write('\n')
+
+        return response
 
 
 

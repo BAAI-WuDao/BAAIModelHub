@@ -2,7 +2,7 @@ import setuptools
 from setuptools import find_packages, setup
 setup(
     name="baai_modelhub",
-    version="0.0.7",
+    version="0.0.8",
     author="zhiyuan",
     author_email="zhiyuan@baai.ac.cn",
     description="BAAIModelHub is a tool for managing models from model.baai.ac.cn",

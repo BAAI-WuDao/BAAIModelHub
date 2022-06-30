@@ -24,6 +24,7 @@ from tqdm.auto import tqdm
 import requests
 import logging
 import json
+import warnings
 from .encryption import read_private_key, read_public_key,create_rsa_pair
 from .encryption import BAAIUserClient
 from .encryption import public_encryption, private_decryption, private_encryption, public_decryption
@@ -101,12 +102,12 @@ def obtain_file_lists(model_id,
         private_key = read_private_key()
         public_key = read_public_key()
         text_encrypted_base64 = private_encryption(user_name, private_key)
-        text_decrypted = public_decryption(text_encrypted_base64, public_key)
-        print('aa',text_decrypted)
+        # text_decrypted = public_decryption(text_encrypted_base64, public_key)
+
     else:
         public_key,private_key=create_rsa_pair(is_save=False)
         text_encrypted_base64 = private_encryption(user_name, private_key)
-        print('bb',text_encrypted_base64)
+
 
     input_key={
         "encrypted_text": text_encrypted_base64,
@@ -132,52 +133,25 @@ class AutoPull(object):
         model_id = _get_model_id(model_name)
         user_client = BAAIUserClient()
         user_name = user_client.obtain_and_set_username(user_name=user_name)
-
         texts=obtain_file_lists(model_id,
                           file_name=file_name,
                           user_name=user_name,
                           files_request=self.files_request)
         print(texts)
 
+        if texts['code']!='200':
+            warnings.warn("To download this model, users need login permission. "
+                          "The RSA public key on model.baai.ac.cn does not match the user name, "
+                          "please check the user name and the RSA public key. You can also login with the user name and password "  )
 
-
-        if texts['code']=='40005':
             try:
-                print('The RSA public key on mdoel.baai.ac.cn does not match the user name, one can login with user name and password')
-
-                try:
-                    user_client.passwd_login()
-                except:
-                    raise ValueError(
-                        'The RSA public key and the password is not valid, please flash the RSA public key, the username and the password'
-                        ' on model.aai.ac.cn')
-            except:
-                raise ValueError('To download this model, users need login permission. '
-                                 'The RSA public key on model.baai.ac.cn does not match the user name,'
-                                 ' please check the user name and the RSA public key')
-
-        elif texts['code']=='40001':
-            try:
-                print( 'The user name is invalid on model.baai.ac.cn, please retype your user name')
-                user_name=input()
-                user_client.save_user_name(user_name)
-                texts = obtain_file_lists(model_id,
-                                          file_name=file_name,
-                                          user_name=user_name,
-                                          files_request=self.files_request)
-            except:
-                raise ValueError('To download this model, users need login permission. '
-                             'The user name is not found on mdoel.baai.ac.cn, please check your user name '
-                             'or go to baai.ac.cn to register')
-        elif texts['code']=='200':
-            pass
-        else:
-            try:
-                print('The RSA public key is invalid, please type your user name and password.')
                 user_client.passwd_login()
             except:
-                raise ValueError('The RSA public key and the password is not valid, please flash the RSA public key, the username and the password'
-                                 ' on model.aai.ac.cn')
+                raise ValueError(
+                    'The user name or the password is invalid, please  check the username and the password'
+                    ' on model.aai.ac.cn')
+
+
 
         for file in texts['file_list']:
             url = json.loads(file)['url']
