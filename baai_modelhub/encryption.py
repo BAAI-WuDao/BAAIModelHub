@@ -91,27 +91,41 @@ def public_decryption(text_encrypted_base64: str, public_key: bytes):
     return text_decrypted
 
 
-def passwd_request(user_name,passwd,googel_vericode):
-    public_key=b'-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAPtnfRsERmEVoCThY3YD67QYQ+K8hZAQ3wxEnraPSzUKH7n42oBtIGoorx2NsdN6oA9KirGPJjdjvB7Kuszmb90CAwEAAQ==\n-----END PUBLIC KEY-----\n'
-    url="https://usercenter.platform.baai.ac.cn/api/v1/user/login"
-    encode_passwd=public_encryption(passwd,public_key)
+def passwd_request(user_name,passwd,googel_vericode,model_id,token='',file_name=''):
     input_key = {
-        "ua":"mode",
-        "logintypes":2,
-        "username": user_name,
-        "password": encode_passwd,
-        "vericode":googel_vericode,
-        "platformtype": 2
+        'user_name': user_name,
+        'password': passwd,
+        'vericode': googel_vericode,
+        'token': token,
+        'model_id': model_id,
+        'file_name': file_name
     }
     data = json.dumps(input_key)
-    response = requests.post(url, data=data,headers = {'Content-Type': 'application/json' })
+    login_request= 'http://120.131.5.115:8080/api/downloadCodePasswordTest'
+
+    response = requests.post(login_request, data=data)
+
+
+    # public_key=b'-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAPtnfRsERmEVoCThY3YD67QYQ+K8hZAQ3wxEnraPSzUKH7n42oBtIGoorx2NsdN6oA9KirGPJjdjvB7Kuszmb90CAwEAAQ==\n-----END PUBLIC KEY-----\n'
+    # url="https://usercenter.platform.baai.ac.cn/api/v1/user/login"
+    # encode_passwd=public_encryption(passwd,public_key)
+    # input_key = {
+    #     "ua":"mode",
+    #     "logintypes":2,
+    #     "username": user_name,
+    #     "password": encode_passwd,
+    #     "vericode":googel_vericode,
+    #     "platformtype": 2
+    # }
+    # data = json.dumps(input_key)
+    # response = requests.post(url, data=data,headers = {'Content-Type': 'application/json' })
     return response
 
 class BAAIUserClient():
     def __init__(self, user_name='default_name'):
 
-        self.user_path = '/root/.cache/baai_modelhub/user'
-        self.cache_path = '/root/.cache/baai_modelhub/'
+        self.user_path = '/tmp/.cache/baai_modelhub/user'
+        self.cache_path = '/tmp/.cache/baai_modelhub/'
         if not os.path.exists(self.cache_path):
             os.makedirs(self.cache_path)
         self.user_name=user_name
@@ -122,6 +136,13 @@ class BAAIUserClient():
             x.write(user_name)
             x.write('\n')
 
+    def obtain_token(self,):
+        try:
+            with open(os.path.join(self.cache_path,'token_info'),'r') as r:
+                token=r.read().strip('\n')
+            return token
+        except:
+            return ''
 
 
     def obtain_and_set_username(self,user_name='default_name'):
@@ -129,37 +150,53 @@ class BAAIUserClient():
             if os.path.exists(self.user_path):
                 with open(self.user_path, "r") as x:
                     user_name=x.read().strip('\n')
-                    if len(user_name)>0:
+                    if len(user_name)>0 and user_name is not None:
                         self.user_name= user_name
                 return self.user_name
         else:
             self.user_name=user_name
             self.save_user_name(self.user_name)
             return self.user_name
+        return self.user_name
 
 
 
-    def passwd_login(self,):
-        print('Please type your user name of model.baai.ac.cn:')
-        user_name = input()
-        password = maskpass.askpass('passward:')
-        google_vericode =maskpass.askpass('Verification code from google authenticator:')
+    def passwd_login(self,model_id,file_name):
 
-        response = passwd_request(user_name, password, google_vericode)
-        response_dict=json.loads(response.text)
-        print(user_name,password,google_vericode,)
-        print(response_dict)
+        token=self.obtain_token()
+        login = 'fail'
+        if len(token)>0:
+            try:
+                response = passwd_request(self.user_name,
+                                          self.user_name,
+                                          '888',
+                                          model_id=model_id,
+                                          token=token,
+                                          file_name=file_name)
 
-        print(os.path.join(self.cache_path,'token_info'),862876363@qq.com,response_dict['msg']=='登陆成功')
-        if response_dict['msg']=='登陆成功':
-            print(response_dict['jdauthorization'])
+                response_dict = json.loads(json.loads(response.text))
+                if response_dict['code']=='200':
+                    login='success'
+            except:
+                pass
+        if login =='fail':
+            print('Please type your user name of model.baai.ac.cn:')
+            user_name = input()
+            password = maskpass.askpass('passward:')
+            google_vericode =maskpass.askpass('Verification code from google authenticator:')
+            response = passwd_request(user_name,
+                                      password,
+                                      google_vericode,
+                                      model_id=model_id,
+                                      file_name=file_name)
 
-            with open(os.path.join(self.cache_path,'token_info'),'w') as w:
-                print(response_dict['jdauthorization'])
-                w.write(response_dict['jdauthorization'])
-                w.write('\n')
-
-        return response
+            response_dict=json.loads(json.loads(response.text))
+            if response_dict['code'] == '200' and len(response_dict['token'])>10:
+                login = 'success'
+                with open(os.path.join(self.cache_path, 'token_info'), 'w') as w:
+                    w.write(response_dict['token'])
+                    w.write('\n')
+        return response_dict
 
 
 

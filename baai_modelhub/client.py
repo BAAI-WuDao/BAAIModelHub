@@ -72,6 +72,11 @@ def download_from_url(url, total_size=0, to_path=None, file_pname=None, chunk_si
         desc="Downloading",
         disable=bool(logging.getLogger(__name__.split(".")[0]) == logging.NOTSET),
     )
+
+    if os.path.exists(file_path):
+        resume_size = os.path.getsize(file_path)
+        if resume_size >= total_size:
+            return
     while 1:
         with open(file_path, "ab") as f:
             for chunk in res.iter_content(chunk_size=chunk_size):
@@ -98,13 +103,13 @@ def obtain_file_lists(model_id,
                    file_name='',
                    user_name='default_name',
                    files_request=None):
-    if 1:
+    try:
         private_key = read_private_key()
         public_key = read_public_key()
         text_encrypted_base64 = private_encryption(user_name, private_key)
         # text_decrypted = public_decryption(text_encrypted_base64, public_key)
 
-    else:
+    except:
         public_key,private_key=create_rsa_pair(is_save=False)
         text_encrypted_base64 = private_encryption(user_name, private_key)
 
@@ -119,11 +124,13 @@ def obtain_file_lists(model_id,
     response=requests.post(files_request,data=data)
 
     texts=json.loads(response.text)
+
     return texts
 
 class AutoPull(object):
     def __init__(self):
-        self.files_request = 'http://120.131.5.115:8080/api/downloadCodeTest'
+        self.files_request = 'http://120.131.5.115:8080/api/downloadFromCode'
+
 
     def get_model(self, model_name,
                    model_save_path='./checkpoints/',
@@ -133,11 +140,12 @@ class AutoPull(object):
         model_id = _get_model_id(model_name)
         user_client = BAAIUserClient()
         user_name = user_client.obtain_and_set_username(user_name=user_name)
+
         texts=obtain_file_lists(model_id,
                           file_name=file_name,
                           user_name=user_name,
                           files_request=self.files_request)
-        print(texts)
+
 
         if texts['code']!='200':
             warnings.warn("To download this model, users need login permission. "
@@ -145,15 +153,19 @@ class AutoPull(object):
                           "please check the user name and the RSA public key. You can also login with the user name and password "  )
 
             try:
-                user_client.passwd_login()
+                response_dict=user_client.passwd_login(model_id=model_id,file_name=file_name)
+                file_list=response_dict['file_list']
+                print('login success')
             except:
                 raise ValueError(
                     'The user name or the password is invalid, please  check the username and the password'
                     ' on model.aai.ac.cn')
+        else:
+            file_list=texts['file_list']
+            print('login success')
 
 
-
-        for file in texts['file_list']:
+        for file in file_list:
             url = json.loads(file)['url']
             size = json.loads(file)['size']
             file_name = json.loads(file)['file_name']
